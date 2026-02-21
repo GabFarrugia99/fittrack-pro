@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>FitTrack Pro - Nutrition & Fitness Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #3b82f6;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 1.5rem 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .header .date {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-top: 0.25rem;
+        }
+        
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .stat-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        
+        .stat-card.calories {
+            grid-column: span 2;
+        }
+        
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-card.calories .value {
+            font-size: 3rem;
+        }
+        
+        .stat-card .sub {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        
+        /* Progress Ring */
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 8;
+        }
+        
+        .progress-ring .bg {
+            stroke: rgba(255,255,255,0.1);
+        }
+        
+        .progress-ring .progress {
+            stroke: var(--primary);
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        .progress-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            fill: var(--text);
+        }
+        
+        /* Macros */
+        .macros {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            padding: 0 1rem 1rem;
+        }
+        
+        .macro {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        
+        .macro .name {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        
+        .macro .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+        
+        .macro .target {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        /* Meal Sections */
+        .meals {
+            padding: 0 1rem;
+        }
+        
+        .meal-section {
+            background: var(--card);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        
+        .meal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            cursor: pointer;
+        }
+        
+        .meal-header h3 {
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .meal-header .calories {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        .meal-items {
+            padding: 0.5rem 1rem;
+        }
+        
+        .meal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .meal-item:last-child {
+            border-bottom: none;
+        }
+        
+        .meal-item .name {
+            font-size: 0.9375rem;
+        }
+        
+        .meal-item .details {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        
+        .meal-item .cals {
+            font-size: 0.875rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.75rem;
+            background: transparent;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            cursor: pointer;
+            margin: 0.5rem 0;
+            transition: all 0.2s;
+        }
+        
+        .add-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        /* Water Tracker */
+        .water-section {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin: 0 1rem 1rem;
+            border: 1px solid var(--border);
+        }
+        
+        .water-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .water-glasses {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .water-glass {
+            width: 40px;
+            height: 50px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 2px solid var(--secondary);
+            border-radius: 8px 8px 20px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .water-glass.filled {
+            background: var(--secondary);
+        }
+        
+        .water-glass:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 0.75rem 0;
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.75rem;
+            padding: 0.25rem 1rem;
+            transition: color 0.2s;
+        }
+        
+        .nav-item i {
+            font-size: 1.25rem;
+        }
+        
+        .nav-item.active {
+            color: var(--primary);
+        }
+        
+        .nav-item:hover {
+            color: var(--text);
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            align-items: flex-end;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--card);
+            width: 100%;
+            max-height: 80vh;
+            border-radius: 24px 24px 0 0;
+            padding: 1.5rem;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-header h2 {
+            font-size: 1.25rem;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .food-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .food-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .food-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .food-item .info h4 {
+            font-size: 0.9375rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .food-item .info p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        .food-item .cals {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        /* Quick Add Section */
+        .quick-add {
+            padding: 0 1rem 1rem;
+        }
+        
+        .section-title {
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            padding: 0 1rem 1rem;
+        }
+        
+        .quick-action {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-action:hover {
+            border-color: var(--primary);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .quick-action i {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .quick-action span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        @media (max-width: 380px) {
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            .stat-card.calories {
+                grid-column: span 1;
+            }
+            .macros {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>FitTrack Pro</h1>
+        <div class="date" id="currentDate">Today</div>
+    </header>
+
+    <!-- Stats -->
+    <div class="stats-container">
+        <div class="stat-card calories">
+            <div class="label">Calories Remaining</div>
+            <svg class="progress-ring" viewBox="0 0 120 120">
+                <circle class="bg" cx="60" cy="60" r="52"></circle>
+                <circle class="progress" cx="60" cy="60" r="52" stroke-dasharray="326.73" stroke-dashoffset="80"></circle>
+                <text class="progress-text" x="60" y="65" text-anchor="middle">1,240</text>
+            </svg>
+            <div class="sub">of 2,200 goal</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="label">Food</div>
+            <div class="value">960</div>
+            <div class="sub">calories</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="label">Exercise</div>
+            <div class="value">0</div>
+            <div class="sub">calories</div>
+        </div>
+    </div>
+
+    <!-- Macros -->
+    <div class="macros">
+        <div class="macro">
+            <div class="name">Protein</div>
+            <div class="value">45g</div>
+            <div class="target">of 140g</div>
+        </div>
+        <div class="macro">
+            <div class="name">Carbs</div>
+            <div class="value">89g</div>
+            <div class="target">of 275g</div>
+        </div>
+        <div class="macro">
+            <div class="name">Fat</div>
+            <div class="value">32g</div>
+            <div class="target">of 73g</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-title">Quick Add</div>
+    <div class="quick-actions">
+        <div class="quick-action" onclick="openModal('breakfast')">
+            <i class="fas fa-coffee"></i>
+            <span>Breakfast</span>
+        </div>
+        <div class="quick-action" onclick="openModal('lunch')">
+            <i class="fas fa-utensils"></i>
+            <span>Lunch</span>
+        </div>
+        <div class="quick-action" onclick="openModal('dinner')">
+            <i class="fas fa-moon"></i>
+            <span>Dinner</span>
+        </div>
+        <div class="quick-action" onclick="openModal('snack')">
+            <i class="fas fa-cookie-bite"></i>
+            <span>Snack</span>
+        </div>
+    </div>
+
+    <!-- Meals -->
+    <div class="meals">
+        <div class="meal-section">
+            <div class="meal-header" onclick="toggleMeal(this)">
+                <h3><i class="fas fa-coffee"></i> Breakfast</h3>
+                <span class="calories">420 cal</span>
+            </div>
+            <div class="meal-items">
+                <div class="meal-item">
+                    <div>
+                        <div class="name">Oatmeal with Berries</div>
+                        <div class="details">1 cup oatmeal, 1/2 cup blueberries</div>
+                    </div>
+                    <span class="cals">320 cal</span>
+                </div>
+                <div class="meal-item">
+                    <div>
+                        <div class="name">Black Coffee</div>
+                        <div class="details">2 cups</div>
+                    </div>
+                    <span class="cals">10 cal</span>
+                </div>
+                <div class="meal-item">
+                    <div>
+                        <div class="name">Scrambled Eggs</div>
+                        <div class="details">2 large eggs</div>
+                    </div>
+                    <span class="cals">90 cal</span>
+                </div>
+                <button class="add-btn" onclick="openModal('breakfast')">
+                    <i class="fas fa-plus"></i> Add Food
+                </button>
+            </div>
+        </div>
+
+        <div class="meal-section">
+            <div class="meal-header" onclick="toggleMeal(this)">
+                <h3><i class="fas fa-utensils"></i> Lunch</h3>
+                <span class="calories">540 cal</span>
+            </div>
+            <div class="meal-items">
+                <div class="meal-item">
+                    <div>
+                        <div class="name">Grilled Chicken Salad</div>
+                        <div class="details">4 oz chicken, mixed greens, olive oil</div>
+                    </div>
+                    <span class="cals">380 cal</span>
+                </div>
+                <div class="meal-item">
+                    <div>
+                        <div class="name">Whole Grain Bread</div>
+                        <div class="details">2 slices</div>
+                    </div>
+                    <span class="cals">160 cal</span>
+                </div>
+                <button class="add-btn" onclick="openModal('lunch')">
+                    <i class="fas fa-plus"></i> Add Food
+                </button>
+            </div>
+        </div>
+
+        <div class="meal-section">
+            <div class="meal-header" onclick="toggleMeal(this)">
+                <h3><i class="fas fa-moon"></i> Dinner</h3>
+                <span class="calories">0 cal</span>
+            </div>
+            <div class="meal-items">
+                <button class="add-btn" onclick="openModal('dinner')">
+                    <i class="fas fa-plus"></i> Add Food
+                </button>
+            </div>
+        </div>
+
+        <div class="meal-section">
+            <div class="meal-header" onclick="toggleMeal(this)">
+                <h3><i class="fas fa-cookie-bite"></i> Snacks</h3>
+                <span class="calories">0 cal</span>
+            </div>
+            <div class="meal-items">
+                <button class="add-btn" onclick="openModal('snack')">
+                    <i class="fas fa-plus"></i> Add Food
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Water Tracker -->
+    <div class="water-section">
+        <h3><i class="fas fa-tint"></i> Water Tracker</h3>
+        <div class="water-glasses" id="waterGlasses">
+            <div class="water-glass filled" onclick="toggleWater(this)">💧</div>
+            <div class="water-glass filled" onclick="toggleWater(this)">💧</div>
+            <div class="water-glass filled" onclick="toggleWater(this)">💧</div>
+            <div class="water-glass" onclick="toggleWater(this)"></div>
+            <div class="water-glass" onclick="toggleWater(this)"></div>
+            <div class="water-glass" onclick="toggleWater(this)"></div>
+            <div class="water-glass" onclick="toggleWater(this)"></div>
+            <div class="water-glass" onclick="toggleWater(this)"></div>
+        </div>
+        <p style="text-align: center; color: var(--text-muted); margin-top: 0.75rem; font-size: 0.875rem;">
+            3 of 8 glasses (24 oz)
+        </p>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Diary</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-chart-line"></i>
+            <span>Progress</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-utensils"></i>
+            <span>Recipes</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <!-- Add Food Modal -->
+    <div class="modal" id="addFoodModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Food</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <input type="text" class="search-box" placeholder="Search for food..." id="foodSearch">
+            
+            <div class="food-list" id="foodList">
+                <div class="food-item" onclick="addFood('Grilled Chicken Breast', 165, '4 oz')">
+                    <div class="info">
+                        <h4>Grilled Chicken Breast</h4>
+                        <p>4 oz • 31g protein</p>
+                    </div>
+                    <span class="cals">165 cal</span>
+                </div>
+                
+                <div class="food-item" onclick="addFood('Brown Rice', 216, '1 cup cooked')">
+                    <div class="info">
+                        <h4>Brown Rice</h4>
+                        <p>1 cup cooked • 45g carbs</p>
+                    </div>
+                    <span class="cals">216 cal</span>
+                </div>
+                
+                <div class="food-item" onclick="addFood('Broccoli', 55, '1 cup')">
+                    <div class="info">
+                        <h4>Broccoli</h4>
+                        <p>1 cup • 4g fiber</p>
+                    </div>
+                    <span class="cals">55 cal</span>
+                </div>
+                
+                <div class="food-item" onclick="addFood('Salmon', 412, '6 oz')">
+                    <div class="info">
+                        <h4>Salmon</h4>
+                        <p>6 oz • 34g protein</p>
+                    </div>
+                    <span class="cals">412 cal</span>
+                </div>
+                
+                <div class="food-item" onclick="addFood('Greek Yogurt', 100, '1 cup')">
+                    <div class="info">
+                        <h4>Greek Yogurt (Non-fat)</h4>
+                        <p>1 cup • 17g protein</p>
+                    </div>
+                    <span class="cals">100 cal</span>
+                </div>
+                
+                <div class="food-item" onclick="addFood('Banana', 105, '1 medium')">
+                    <div class="info">
+                        <h4>Banana</h4>
+                        <p>1 medium • 27g carbs</p>
+                    </div>
+                    <span class="cals">105 cal</span>
+                </div>
+                
+                <div class="food-item" onclick="addFood('Almonds', 164, '1 oz')">
+                    <div class="info">
+                        <h4>Almonds</h4>
+                        <p>1 oz (23 nuts) • 14g fat</p>
+                    </div>
+                    <span class="cals">164 cal</span>
+                </div>
+                
+                <div class="food-item" onclick="addFood('Avocado', 240, '1 medium')">
+                    <div class="info">
+                        <h4>Avocado</h4>
+                        <p>1 medium • 22g fat</p>
+                    </div>
+                    <span class="cals">240 cal</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', options);
+
+        // Modal functions
+        let currentMeal = '';
+        
+        function openModal(meal) {
+            currentMeal = meal;
+            document.getElementById('modalTitle').textContent = 'Add ' + meal.charAt(0).toUpperCase() + meal.slice(1);
+            document.getElementById('addFoodModal').classList.add('active');
+            document.getElementById('foodSearch').focus();
+        }
+        
+        function closeModal() {
+            document.getElementById('addFoodModal').classList.remove('active');
+        }
+        
+        function addFood(name, calories, serving) {
+            alert(`Added ${name} (${calories} cal) to ${currentMeal}`);
+            closeModal();
+        }
+        
+        // Toggle meal section
+        function toggleMeal(header) {
+            const items = header.nextElementSibling;
+            items.style.display = items.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Water tracker
+        function toggleWater(glass) {
+            glass.classList.toggle('filled');
+            updateWaterCount();
+        }
+        
+        function updateWaterCount() {
+            const filled = document.querySelectorAll('.water-glass.filled').length;
+            document.querySelector('.water-section p').textContent = `${filled} of 8 glasses (${filled * 8} oz)`;
+        }
+        
+        // Search functionality
+        document.getElementById('foodSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.food-item');
+            
+            items.forEach(item => {
+                const name = item.querySelector('h4').textContent.toLowerCase();
+                item.style.display = name.includes(searchTerm) ? 'flex' : 'none';
+            });
+        });
+        
+        // Close modal on outside click
+        document.getElementById('addFoodModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        
+        // Save data to localStorage
+        function saveData() {
+            const data = {
+                date: new Date().toDateString(),
+                water: document.querySelectorAll('.water-glass.filled').length
+            };
+            localStorage.setItem('fittrack_data', JSON.stringify(data));
+        }
+        
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('fittrack_data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                // Restore water glasses
+                const glasses = document.querySelectorAll('.water-glass');
+                glasses.forEach((glass, i) => {
+                    if (i < data.water) glass.classList.add('filled');
+                });
+                updateWaterCount();
+            }
+        }
+        
+        // Load saved data on startup
+        loadData();
+        
+        // Save data periodically
+        setInterval(saveData, 30000);
+    </script>
+</body>
+</html>
