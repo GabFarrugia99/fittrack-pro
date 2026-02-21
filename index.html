@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <title>FitTrack Pro - Nutrition & Fitness Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -1057,51 +1058,101 @@
         let barcodeStream = null;
         let scannedBarcode = null;
         let scannedProductData = null;
+        let codeReader = null;
+        let isScanning = false;
         
         async function openBarcodeScanner() {
             document.getElementById('barcodeModal').classList.add('active');
             
             try {
                 const video = document.getElementById('barcodeVideo');
+                document.querySelector('.scanner-instructions').textContent = 'Starting camera...';
                 
-                // Check for BarcodeDetector API support
+                // Try native BarcodeDetector first (Chrome/Android)
                 if ('BarcodeDetector' in window) {
-                    barcodeStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'environment' } 
-                    });
-                    video.srcObject = barcodeStream;
-                    
-                    const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'code_128'] });
-                    
-                    const scanLoop = async () => {
-                        if (!document.getElementById('barcodeModal').classList.contains('active')) return;
+                    try {
+                        barcodeStream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: 'environment' } 
+                        });
+                        video.srcObject = barcodeStream;
                         
-                        try {
-                            const barcodes = await barcodeDetector.detect(video);
-                            if (barcodes.length > 0) {
-                                const barcode = barcodes[0].rawValue;
-                                handleBarcodeScan(barcode);
+                        const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'code_128'] });
+                        
+                        document.querySelector('.scanner-instructions').textContent = 'Position barcode within the frame';
+                        
+                        const scanLoop = async () => {
+                            if (!document.getElementById('barcodeModal').classList.contains('active')) return;
+                            
+                            try {
+                                const barcodes = await barcodeDetector.detect(video);
+                                if (barcodes.length > 0) {
+                                    const barcode = barcodes[0].rawValue;
+                                    handleBarcodeScan(barcode);
+                                }
+                            } catch (e) {
+                                // Continue scanning
                             }
-                        } catch (e) {
-                            // Continue scanning
-                        }
+                            
+                            requestAnimationFrame(scanLoop);
+                        };
                         
-                        requestAnimationFrame(scanLoop);
-                    };
-                    
-                    scanLoop();
-                } else {
-                    // Fallback for browsers without BarcodeDetector
-                    document.querySelector('.scanner-instructions').textContent = 'Camera active. Enter barcode manually below.';
+                        scanLoop();
+                        return;
+                    } catch (e) {
+                        console.log('BarcodeDetector failed, trying ZXing fallback');
+                    }
                 }
+                
+                // Fallback to ZXing for iOS/Safari
+                await startZXingScanner(video);
+                
             } catch (err) {
                 console.error('Camera error:', err);
                 document.querySelector('.scanner-instructions').textContent = 'Camera access denied. Use manual entry below.';
             }
         }
         
+        async function startZXingScanner(video) {
+            try {
+                // Initialize ZXing code reader
+                codeReader = new ZXing.BrowserMultiFormatReader();
+                
+                document.querySelector('.scanner-instructions').textContent = 'Requesting camera permission...';
+                
+                // Get camera stream
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                
+                video.srcObject = stream;
+                barcodeStream = stream;
+                
+                document.querySelector('.scanner-instructions').textContent = 'Position barcode within the frame';
+                
+                // Start decoding
+                codeReader.decodeFromVideoElement(video, (result, error) => {
+                    if (result && !isScanning) {
+                        handleBarcodeScan(result.text);
+                    }
+                    if (error && error.name !== 'NotFoundException') {
+                        console.error('ZXing error:', error);
+                    }
+                });
+                
+            } catch (err) {
+                console.error('ZXing scanner error:', err);
+                document.querySelector('.scanner-instructions').textContent = 'Camera not available. Use manual entry.';
+            }
+        }
+        
         function closeBarcodeModal() {
             document.getElementById('barcodeModal').classList.remove('active');
+            
+            // Stop ZXing reader
+            if (codeReader) {
+                codeReader.reset();
+                codeReader = null;
+            }
             
             // Stop camera stream
             if (barcodeStream) {
@@ -1114,9 +1165,71 @@
             document.getElementById('addScannedBtn').style.display = 'none';
             scannedBarcode = null;
             scannedProductData = null;
+            isScanning = false;
         }
-        
-        // Open Food Facts API Integration
+
+        async function handleBarcodeScan(barcode) {
+            if (scannedBarcode === barcode || isScanning) return;
+            scannedBarcode = barcode;
+            isScanning = true;
+
+            const resultDiv = document.getElementById('barcodeResult');
+            const existingImg = resultDiv.querySelector('img');
+            if (existingImg) existingImg.remove();
+
+            await lookupOpenFoodFacts(barcode);
+
+            isScanning = false;
+        }
+
+        async function lookupBarcode() {
+            const barcode = document.getElementById('manualBarcode').value.trim();
+            if (barcode) {
+                scannedBarcode = null;
+                await handleBarcodeScan(barcode);
+            }
+        }
+
+        function addScannedFood() {
+            if (scannedProductData) {
+                const mealType = currentMeal || 'snack';
+                const today = new Date().toDateString();
+                const logKey = `fittrack_log_${today}`;
+                const existingLog = JSON.parse(localStorage.getItem(logKey) || '[]');
+
+                existingLog.push({
+                    ...scannedProductData,
+                    meal: mealType,
+                    timestamp: new Date().toISOString()
+                });
+
+                localStorage.setItem(logKey, JSON.stringify(existingLog));
+
+                alert(`Added ${scannedProductData.name} (${scannedProductData.calories} cal) to ${mealType}!`);
+                closeBarcodeModal();
+                loadTodayLog();
+            }
+        }
+
+        function loadTodayLog() {
+            const today = new Date().toDateString();
+            const log = JSON.parse(localStorage.getItem(`fittrack_log_${today}`) || '[]');
+
+            let totalCalories = 0;
+            let totalProtein = 0;
+            let totalCarbs = 0;
+            let totalFat = 0;
+
+            log.forEach(item => {
+                totalCalories += item.calories || 0;
+                totalProtein += item.protein || 0;
+                totalCarbs += item.carbs || 0;
+                totalFat += item.fat || 0;
+            });
+
+            console.log('Today\'s totals:', { totalCalories, totalProtein, totalCarbs, totalFat });
+        }
+
         async function lookupOpenFoodFacts(barcode) {
             try {
                 document.getElementById('scannedProduct').textContent = 'Looking up...';
@@ -1200,80 +1313,69 @@
                 return false;
             }
         }
-        
-        let isScanning = false;
-        
+
         async function handleBarcodeScan(barcode) {
-            if (scannedBarcode === barcode || isScanning) return; // Prevent duplicate scans
+            if (scannedBarcode === barcode || isScanning) return;
             scannedBarcode = barcode;
             isScanning = true;
-            
-            // Clear previous image
+
             const resultDiv = document.getElementById('barcodeResult');
             const existingImg = resultDiv.querySelector('img');
             if (existingImg) existingImg.remove();
-            
-            // Lookup in Open Food Facts
+
             await lookupOpenFoodFacts(barcode);
-            
+
             isScanning = false;
         }
-        
+
         async function lookupBarcode() {
             const barcode = document.getElementById('manualBarcode').value.trim();
             if (barcode) {
-                scannedBarcode = null; // Reset to allow re-scan
+                scannedBarcode = null;
                 await handleBarcodeScan(barcode);
             }
         }
-        
+
         function addScannedFood() {
             if (scannedProductData) {
-                // Add to meal log (you can specify which meal)
                 const mealType = currentMeal || 'snack';
-                
-                // Save to local storage
                 const today = new Date().toDateString();
                 const logKey = `fittrack_log_${today}`;
                 const existingLog = JSON.parse(localStorage.getItem(logKey) || '[]');
-                
+
                 existingLog.push({
                     ...scannedProductData,
                     meal: mealType,
                     timestamp: new Date().toISOString()
                 });
-                
+
                 localStorage.setItem(logKey, JSON.stringify(existingLog));
-                
+
                 alert(`Added ${scannedProductData.name} (${scannedProductData.calories} cal) to ${mealType}!`);
                 closeBarcodeModal();
-                
-                // Refresh the display
                 loadTodayLog();
             }
         }
-        
+
         function loadTodayLog() {
             const today = new Date().toDateString();
             const log = JSON.parse(localStorage.getItem(`fittrack_log_${today}`) || '[]');
-            
-            // Calculate totals
+
             let totalCalories = 0;
             let totalProtein = 0;
             let totalCarbs = 0;
             let totalFat = 0;
-            
+
             log.forEach(item => {
                 totalCalories += item.calories || 0;
                 totalProtein += item.protein || 0;
                 totalCarbs += item.carbs || 0;
                 totalFat += item.fat || 0;
             });
-            
-            // Update display (you can customize this)
+
             console.log('Today\'s totals:', { totalCalories, totalProtein, totalCarbs, totalFat });
         }
-        
+
         // Close barcode modal on outside click
         document.getElementById('barcodeModal').addEventListener('click', function(e) {
             if (e.target === this) closeBarcodeModal();
