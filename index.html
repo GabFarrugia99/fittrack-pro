@@ -866,7 +866,7 @@
             </div>
             
             <div class="scanner-container">
-                <video id="barcodeVideo" autoplay playsinline></video>
+                <video id="barcodeVideo" autoplay playsinline muted></video>
                 <div class="scanner-overlay">
                     <div class="scanner-laser"></div>
                 </div>
@@ -1119,29 +1119,56 @@
                 
                 document.querySelector('.scanner-instructions').textContent = 'Requesting camera permission...';
                 
+                // iOS Chrome needs specific constraints
+                const constraints = {
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
                 // Get camera stream
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
-                });
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 
                 video.srcObject = stream;
                 barcodeStream = stream;
                 
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        resolve();
+                    };
+                });
+                
                 document.querySelector('.scanner-instructions').textContent = 'Position barcode within the frame';
                 
-                // Start decoding
+                // Start decoding with hints for better performance
+                const hints = new Map();
+                hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+                    ZXing.BarcodeFormat.EAN_13,
+                    ZXing.BarcodeFormat.EAN_8,
+                    ZXing.BarcodeFormat.UPC_A,
+                    ZXing.BarcodeFormat.UPC_E,
+                    ZXing.BarcodeFormat.CODE_39,
+                    ZXing.BarcodeFormat.CODE_128
+                ]);
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                
                 codeReader.decodeFromVideoElement(video, (result, error) => {
                     if (result && !isScanning) {
+                        console.log('Barcode found:', result.text);
                         handleBarcodeScan(result.text);
                     }
                     if (error && error.name !== 'NotFoundException') {
-                        console.error('ZXing error:', error);
+                        // Silent fail - keep scanning
                     }
-                });
+                }, hints);
                 
             } catch (err) {
                 console.error('ZXing scanner error:', err);
-                document.querySelector('.scanner-instructions').textContent = 'Camera not available. Use manual entry.';
+                document.querySelector('.scanner-instructions').textContent = 'Camera not available: ' + err.message;
             }
         }
         
