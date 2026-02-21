@@ -488,6 +488,159 @@
             color: var(--text-muted);
         }
         
+        /* Barcode Scanner */
+        .barcode-btn {
+            background: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0 1rem 1rem;
+            width: calc(100% - 2rem);
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .barcode-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .barcode-btn i {
+            font-size: 1.25rem;
+        }
+        
+        .scanner-modal .modal-content {
+            max-height: 90vh;
+            background: #000;
+        }
+        
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        #barcodeVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 120px;
+            border: 3px solid var(--accent);
+            border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.7);
+        }
+        
+        .scanner-overlay::before,
+        .scanner-overlay::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: var(--accent);
+            border-style: solid;
+        }
+        
+        .scanner-overlay::before {
+            top: -3px;
+            left: -3px;
+            border-width: 3px 0 0 3px;
+        }
+        
+        .scanner-overlay::after {
+            bottom: -3px;
+            right: -3px;
+            border-width: 0 3px 3px 0;
+        }
+        
+        .scanner-laser {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: scan 2s ease-in-out infinite;
+        }
+        
+        @keyframes scan {
+            0%, 100% { transform: translateY(-60px); opacity: 0; }
+            50% { transform: translateY(60px); opacity: 1; }
+        }
+        
+        .scanner-instructions {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .barcode-result {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .barcode-result.show {
+            display: block;
+        }
+        
+        .barcode-result h4 {
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+        
+        .barcode-result p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        
+        .manual-barcode {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .manual-barcode input {
+            flex: 1;
+            padding: 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 1rem;
+        }
+        
+        .manual-barcode button {
+            padding: 1rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
         @media (max-width: 380px) {
             .stats-container {
                 grid-template-columns: 1fr;
@@ -554,6 +707,12 @@
 
     <!-- Quick Actions -->
     <div class="section-title">Quick Add</div>
+    
+    <!-- Barcode Scanner Button -->
+    <button class="barcode-btn" onclick="openBarcodeScanner()">
+        <i class="fas fa-barcode"></i> Scan Barcode
+    </button>
+    
     <div class="quick-actions">
         <div class="quick-action" onclick="openModal('breakfast')">
             <i class="fas fa-coffee"></i>
@@ -696,6 +855,39 @@
             <span>Profile</span>
         </a>
     </nav>
+
+    <!-- Barcode Scanner Modal -->
+    <div class="modal scanner-modal" id="barcodeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Scan Barcode</h2>
+                <button class="close-btn" onclick="closeBarcodeModal()">&times;</button>
+            </div>
+            
+            <div class="scanner-container">
+                <video id="barcodeVideo" autoplay playsinline></video>
+                <div class="scanner-overlay">
+                    <div class="scanner-laser"></div>
+                </div>
+            </div>
+            
+            <p class="scanner-instructions">Position barcode within the frame to scan</p>
+            
+            <div class="barcode-result" id="barcodeResult">
+                <h4 id="scannedProduct">Product Name</h4>
+                <p id="scannedCalories">Calories: 0</p>
+            </div>
+            
+            <div class="manual-barcode">
+                <input type="text" id="manualBarcode" placeholder="Enter barcode manually...">
+                <button onclick="lookupBarcode()">Lookup</button>
+            </div>
+            
+            <button class="add-btn" onclick="addScannedFood()" id="addScannedBtn" style="display: none;">
+                <i class="fas fa-plus"></i> Add to Log
+            </button>
+        </div>
+    </div>
 
     <!-- Add Food Modal -->
     <div class="modal" id="addFoodModal">
@@ -860,6 +1052,128 @@
         
         // Save data periodically
         setInterval(saveData, 30000);
+        
+        // Barcode Scanner
+        let barcodeStream = null;
+        let scannedBarcode = null;
+        let scannedProductData = null;
+        
+        // Barcode database (mock data for demo - in production, use Open Food Facts API)
+        const barcodeDatabase = {
+            '034000010045': { name: 'Coca-Cola Classic', calories: 140, serving: '12 fl oz', protein: 0, carbs: 39, fat: 0 },
+            '038000138403': { name: 'Kellogg\'s Corn Flakes', calories: 100, serving: '1 cup', protein: 2, carbs: 24, fat: 0 },
+            '021000658974': { name: 'Quaker Oats', calories: 150, serving: '1/2 cup dry', protein: 5, carbs: 27, fat: 3 },
+            '044000032198': { name: 'Nature Valley Granola Bar', calories: 190, serving: '2 bars', protein: 4, carbs: 29, fat: 7 },
+            '037000138216': { name: 'Chobani Greek Yogurt', calories: 100, serving: '5.3 oz', protein: 15, carbs: 7, fat: 0 },
+            '021130409990': { name: 'Tyson Chicken Breast', calories: 110, serving: '4 oz', protein: 26, carbs: 0, fat: 1 },
+            '041196910759': { name: 'Banana', calories: 105, serving: '1 medium', protein: 1, carbs: 27, fat: 0 },
+            '002113085645': { name: 'Almond Breeze Almond Milk', calories: 30, serving: '1 cup', protein: 1, carbs: 1, fat: 2.5 },
+            '085239043712': { name: 'RXBAR Protein Bar', calories: 210, serving: '1 bar', protein: 12, carbs: 23, fat: 8 },
+            '030000011010': { name: 'Diet Coke', calories: 0, serving: '12 fl oz', protein: 0, carbs: 0, fat: 0 },
+            '012345678901': { name: 'Test Product', calories: 250, serving: '1 serving', protein: 10, carbs: 30, fat: 8 }
+        };
+        
+        async function openBarcodeScanner() {
+            document.getElementById('barcodeModal').classList.add('active');
+            
+            try {
+                const video = document.getElementById('barcodeVideo');
+                
+                // Check for BarcodeDetector API support
+                if ('BarcodeDetector' in window) {
+                    barcodeStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                    video.srcObject = barcodeStream;
+                    
+                    const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'code_128'] });
+                    
+                    const scanLoop = async () => {
+                        if (!document.getElementById('barcodeModal').classList.contains('active')) return;
+                        
+                        try {
+                            const barcodes = await barcodeDetector.detect(video);
+                            if (barcodes.length > 0) {
+                                const barcode = barcodes[0].rawValue;
+                                handleBarcodeScan(barcode);
+                            }
+                        } catch (e) {
+                            // Continue scanning
+                        }
+                        
+                        requestAnimationFrame(scanLoop);
+                    };
+                    
+                    scanLoop();
+                } else {
+                    // Fallback for browsers without BarcodeDetector
+                    document.querySelector('.scanner-instructions').textContent = 'Camera active. Enter barcode manually below.';
+                }
+            } catch (err) {
+                console.error('Camera error:', err);
+                document.querySelector('.scanner-instructions').textContent = 'Camera access denied. Use manual entry below.';
+            }
+        }
+        
+        function closeBarcodeModal() {
+            document.getElementById('barcodeModal').classList.remove('active');
+            
+            // Stop camera stream
+            if (barcodeStream) {
+                barcodeStream.getTracks().forEach(track => track.stop());
+                barcodeStream = null;
+            }
+            
+            // Reset result
+            document.getElementById('barcodeResult').classList.remove('show');
+            document.getElementById('addScannedBtn').style.display = 'none';
+            scannedBarcode = null;
+            scannedProductData = null;
+        }
+        
+        function handleBarcodeScan(barcode) {
+            if (scannedBarcode === barcode) return; // Prevent duplicate scans
+            scannedBarcode = barcode;
+            
+            const product = barcodeDatabase[barcode];
+            
+            if (product) {
+                scannedProductData = product;
+                document.getElementById('scannedProduct').textContent = product.name;
+                document.getElementById('scannedCalories').textContent = `Calories: ${product.calories} per ${product.serving}`;
+                document.getElementById('barcodeResult').classList.add('show');
+                document.getElementById('addScannedBtn').style.display = 'flex';
+                
+                // Vibrate if supported
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+            } else {
+                document.getElementById('scannedProduct').textContent = 'Unknown Product';
+                document.getElementById('scannedCalories').textContent = `Barcode: ${barcode}`;
+                document.getElementById('barcodeResult').classList.add('show');
+                document.getElementById('addScannedBtn').style.display = 'none';
+            }
+        }
+        
+        function lookupBarcode() {
+            const barcode = document.getElementById('manualBarcode').value.trim();
+            if (barcode) {
+                handleBarcodeScan(barcode);
+            }
+        }
+        
+        function addScannedFood() {
+            if (scannedProductData) {
+                alert(`Added ${scannedProductData.name} (${scannedProductData.calories} cal) to your log!`);
+                closeBarcodeModal();
+            }
+        }
+        
+        // Close barcode modal on outside click
+        document.getElementById('barcodeModal').addEventListener('click', function(e) {
+            if (e.target === this) closeBarcodeModal();
+        });
     </script>
 </body>
 </html>
