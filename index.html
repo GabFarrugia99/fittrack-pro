@@ -1058,21 +1058,6 @@
         let scannedBarcode = null;
         let scannedProductData = null;
         
-        // Barcode database (mock data for demo - in production, use Open Food Facts API)
-        const barcodeDatabase = {
-            '034000010045': { name: 'Coca-Cola Classic', calories: 140, serving: '12 fl oz', protein: 0, carbs: 39, fat: 0 },
-            '038000138403': { name: 'Kellogg\'s Corn Flakes', calories: 100, serving: '1 cup', protein: 2, carbs: 24, fat: 0 },
-            '021000658974': { name: 'Quaker Oats', calories: 150, serving: '1/2 cup dry', protein: 5, carbs: 27, fat: 3 },
-            '044000032198': { name: 'Nature Valley Granola Bar', calories: 190, serving: '2 bars', protein: 4, carbs: 29, fat: 7 },
-            '037000138216': { name: 'Chobani Greek Yogurt', calories: 100, serving: '5.3 oz', protein: 15, carbs: 7, fat: 0 },
-            '021130409990': { name: 'Tyson Chicken Breast', calories: 110, serving: '4 oz', protein: 26, carbs: 0, fat: 1 },
-            '041196910759': { name: 'Banana', calories: 105, serving: '1 medium', protein: 1, carbs: 27, fat: 0 },
-            '002113085645': { name: 'Almond Breeze Almond Milk', calories: 30, serving: '1 cup', protein: 1, carbs: 1, fat: 2.5 },
-            '085239043712': { name: 'RXBAR Protein Bar', calories: 210, serving: '1 bar', protein: 12, carbs: 23, fat: 8 },
-            '030000011010': { name: 'Diet Coke', calories: 0, serving: '12 fl oz', protein: 0, carbs: 0, fat: 0 },
-            '012345678901': { name: 'Test Product', calories: 250, serving: '1 serving', protein: 10, carbs: 30, fat: 8 }
-        };
-        
         async function openBarcodeScanner() {
             document.getElementById('barcodeModal').classList.add('active');
             
@@ -1131,43 +1116,162 @@
             scannedProductData = null;
         }
         
-        function handleBarcodeScan(barcode) {
-            if (scannedBarcode === barcode) return; // Prevent duplicate scans
-            scannedBarcode = barcode;
-            
-            const product = barcodeDatabase[barcode];
-            
-            if (product) {
-                scannedProductData = product;
-                document.getElementById('scannedProduct').textContent = product.name;
-                document.getElementById('scannedCalories').textContent = `Calories: ${product.calories} per ${product.serving}`;
+        // Open Food Facts API Integration
+        async function lookupOpenFoodFacts(barcode) {
+            try {
+                document.getElementById('scannedProduct').textContent = 'Looking up...';
+                document.getElementById('scannedCalories').textContent = 'Searching Open Food Facts database';
                 document.getElementById('barcodeResult').classList.add('show');
-                document.getElementById('addScannedBtn').style.display = 'flex';
                 
-                // Vibrate if supported
-                if (navigator.vibrate) {
-                    navigator.vibrate(200);
+                const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`, {
+                    headers: {
+                        'User-Agent': 'FitTrackPro - Nutrition Tracker - Version 1.0'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 1 && data.product) {
+                    const product = data.product;
+                    const nutriments = product.nutriments || {};
+                    
+                    // Extract nutrition data (per 100g)
+                    const calories = nutriments['energy-kcal_100g'] || nutriments['energy-kcal'] || 
+                                    Math.round((nutriments['energy-kj_100g'] || 0) / 4.184) || 0;
+                    const protein = nutriments.proteins_100g || nutriments.proteins || 0;
+                    const carbs = nutriments.carbohydrates_100g || nutriments.carbohydrates || 0;
+                    const fat = nutriments.fat_100g || nutriments.fat || 0;
+                    
+                    scannedProductData = {
+                        name: product.product_name || product.generic_name || 'Unknown Product',
+                        brand: product.brands || '',
+                        calories: calories,
+                        serving: product.serving_size || '100g',
+                        protein: protein,
+                        carbs: carbs,
+                        fat: fat,
+                        image: product.image_url || product.image_small_url || null,
+                        barcode: barcode
+                    };
+                    
+                    // Display result
+                    const brandText = scannedProductData.brand ? ` (${scannedProductData.brand})` : '';
+                    document.getElementById('scannedProduct').textContent = scannedProductData.name + brandText;
+                    document.getElementById('scannedCalories').innerHTML = 
+                        `<strong>${calories} cal</strong> per ${scannedProductData.serving}<br>` +
+                        `<small>Protein: ${protein}g | Carbs: ${carbs}g | Fat: ${fat}g</small>`;
+                    document.getElementById('addScannedBtn').style.display = 'flex';
+                    
+                    // Show product image if available
+                    if (scannedProductData.image) {
+                        const img = document.createElement('img');
+                        img.src = scannedProductData.image;
+                        img.style.cssText = 'max-width: 80px; max-height: 80px; border-radius: 8px; margin-top: 10px;';
+                        img.alt = scannedProductData.name;
+                        
+                        const resultDiv = document.getElementById('barcodeResult');
+                        const existingImg = resultDiv.querySelector('img');
+                        if (existingImg) existingImg.remove();
+                        resultDiv.appendChild(img);
+                    }
+                    
+                    // Vibrate on success
+                    if (navigator.vibrate) {
+                        navigator.vibrate([100, 50, 100]);
+                    }
+                    
+                    return true;
+                } else {
+                    // Product not found in database
+                    document.getElementById('scannedProduct').textContent = 'Product Not Found';
+                    document.getElementById('scannedCalories').innerHTML = 
+                        `Barcode: ${barcode}<br><small>This product isn't in the Open Food Facts database yet. ` +
+                        `You can help by adding it at <a href="https://world.openfoodfacts.org" target="_blank" style="color: var(--primary);">openfoodfacts.org</a></small>`;
+                    document.getElementById('addScannedBtn').style.display = 'none';
+                    scannedProductData = null;
+                    return false;
                 }
-            } else {
-                document.getElementById('scannedProduct').textContent = 'Unknown Product';
-                document.getElementById('scannedCalories').textContent = `Barcode: ${barcode}`;
-                document.getElementById('barcodeResult').classList.add('show');
+            } catch (error) {
+                console.error('API Error:', error);
+                document.getElementById('scannedProduct').textContent = 'Lookup Error';
+                document.getElementById('scannedCalories').textContent = 'Failed to connect to database. Please try again.';
                 document.getElementById('addScannedBtn').style.display = 'none';
+                scannedProductData = null;
+                return false;
             }
         }
         
-        function lookupBarcode() {
+        let isScanning = false;
+        
+        async function handleBarcodeScan(barcode) {
+            if (scannedBarcode === barcode || isScanning) return; // Prevent duplicate scans
+            scannedBarcode = barcode;
+            isScanning = true;
+            
+            // Clear previous image
+            const resultDiv = document.getElementById('barcodeResult');
+            const existingImg = resultDiv.querySelector('img');
+            if (existingImg) existingImg.remove();
+            
+            // Lookup in Open Food Facts
+            await lookupOpenFoodFacts(barcode);
+            
+            isScanning = false;
+        }
+        
+        async function lookupBarcode() {
             const barcode = document.getElementById('manualBarcode').value.trim();
             if (barcode) {
-                handleBarcodeScan(barcode);
+                scannedBarcode = null; // Reset to allow re-scan
+                await handleBarcodeScan(barcode);
             }
         }
         
         function addScannedFood() {
             if (scannedProductData) {
-                alert(`Added ${scannedProductData.name} (${scannedProductData.calories} cal) to your log!`);
+                // Add to meal log (you can specify which meal)
+                const mealType = currentMeal || 'snack';
+                
+                // Save to local storage
+                const today = new Date().toDateString();
+                const logKey = `fittrack_log_${today}`;
+                const existingLog = JSON.parse(localStorage.getItem(logKey) || '[]');
+                
+                existingLog.push({
+                    ...scannedProductData,
+                    meal: mealType,
+                    timestamp: new Date().toISOString()
+                });
+                
+                localStorage.setItem(logKey, JSON.stringify(existingLog));
+                
+                alert(`Added ${scannedProductData.name} (${scannedProductData.calories} cal) to ${mealType}!`);
                 closeBarcodeModal();
+                
+                // Refresh the display
+                loadTodayLog();
             }
+        }
+        
+        function loadTodayLog() {
+            const today = new Date().toDateString();
+            const log = JSON.parse(localStorage.getItem(`fittrack_log_${today}`) || '[]');
+            
+            // Calculate totals
+            let totalCalories = 0;
+            let totalProtein = 0;
+            let totalCarbs = 0;
+            let totalFat = 0;
+            
+            log.forEach(item => {
+                totalCalories += item.calories || 0;
+                totalProtein += item.protein || 0;
+                totalCarbs += item.carbs || 0;
+                totalFat += item.fat || 0;
+            });
+            
+            // Update display (you can customize this)
+            console.log('Today\'s totals:', { totalCalories, totalProtein, totalCarbs, totalFat });
         }
         
         // Close barcode modal on outside click
