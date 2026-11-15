@@ -68,6 +68,8 @@ function load() {
             return { ...DEFAULTS, ...d, settings: { ...DEFAULTS.settings, ...(d.settings || {}) } };
         }
     } catch (e) { /* storage unavailable or corrupt */ }
+    // Optional starting data (used by the hosted demo).
+    if (window.GYM_SEED) return { ...structuredClone(DEFAULTS), ...structuredClone(window.GYM_SEED) };
     return structuredClone(DEFAULTS);
 }
 let db = load();
@@ -101,6 +103,21 @@ const fmtDur = ms => {
 };
 const fmtDate = ts => new Date(ts).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 const fmtNum = n => Math.round(n).toLocaleString();
+
+// In-page confirmation (native confirm() is blocked in some embedded views).
+function ask(msg, yesLabel = 'OK', danger = false) {
+    return new Promise(resolve => {
+        const d = $('#dialog'), yes = $('#dialogYes'), no = $('#dialogNo');
+        $('#dialogMsg').textContent = msg;
+        yes.textContent = yesLabel;
+        yes.className = 'btn ' + (danger ? 'danger-solid' : 'primary');
+        d.hidden = false; yes.focus();
+        const done = ok => { d.hidden = true; yes.onclick = no.onclick = d.onclick = null; resolve(ok); };
+        yes.onclick = () => done(true);
+        no.onclick = () => done(false);
+        d.onclick = e => { if (e.target === d) done(false); };
+    });
+}
 
 let toastTimer;
 function toast(msg) {
@@ -482,15 +499,15 @@ function addToActive(exId) {
     db.active.items.push({ ex: exId, sets: newSetsFor(exId) });
     save();
 }
-function finishWorkout() {
+async function finishWorkout() {
     const a = db.active;
     const items = a.items.map(it => ({ ex: it.ex, sets: it.sets.filter(s => s.done).map(({ w, v }) => ({ w, v })) })).filter(it => it.sets.length);
     if (!items.length) {
-        if (confirm('No sets are ticked as done. Discard this workout?')) { db.active = null; stopRest(); save(); render(); }
+        ask('No sets are ticked as done. Discard this workout?', 'Discard', true).then(ok => { if (ok) { db.active = null; stopRest(); save(); render(); } });
         return;
     }
     const pending = a.items.reduce((n, it) => n + it.sets.filter(s => !s.done).length, 0);
-    if (pending && !confirm(`${pending} set${pending === 1 ? ' isn\'t' : 's aren\'t'} ticked and won't be saved. Finish anyway?`)) return;
+    if (pending && !await ask(`${pending} set${pending === 1 ? ' isn\'t' : 's aren\'t'} ticked and won't be saved. Finish anyway?`, 'Finish')) return;
     const end = Date.now();
     const w = { id: a.id, name: a.name.trim() || defaultName(), start: a.start, end, items, kcal: kcalFor((end - a.start) / 60000) };
     db.workouts.unshift(w);
@@ -600,7 +617,7 @@ document.addEventListener('click', e => {
             if (k >= 0 && k < items.length) { [items[i], items[k]] = [items[k], items[i]]; save(); render(); }
             break;
         }
-        case 'discard': if (confirm('Discard this workout? Nothing will be saved.')) { db.active = null; stopRest(); save(); render(); } break;
+        case 'discard': ask('Discard this workout? Nothing will be saved.', 'Discard', true).then(ok => { if (ok) { db.active = null; stopRest(); save(); render(); } }); break;
         case 'finish': finishWorkout(); break;
         case 'rest-adjust': restEnd += +el.dataset.delta * 1000; tickRest(); break;
         case 'rest-skip': stopRest(); break;
@@ -623,13 +640,13 @@ document.addEventListener('click', e => {
             break;
         }
         case 'r-delete':
-            if (confirm('Delete this routine?')) { db.routines = db.routines.filter(x => x.id !== ui.routineDraft.id); ui.routineDraft = null; save(); closeSheet(); render(); }
+            ask('Delete this routine?', 'Delete', true).then(ok => { if (ok) { db.routines = db.routines.filter(x => x.id !== ui.routineDraft.id); ui.routineDraft = null; save(); closeSheet(); render(); } });
             break;
 
         case 'workout-detail': showWorkoutDetail(id); break;
         case 'delete-workout': {
             const w = db.workouts.find(x => x.id === id);
-            if (w && confirm('Delete this workout from your history?')) { db.workouts = db.workouts.filter(x => x.id !== id); diaryRemove(w); save(); closeSheet(); render(); }
+            if (w) ask('Delete this workout from your history?', 'Delete', true).then(ok => { if (ok) { db.workouts = db.workouts.filter(x => x.id !== id); diaryRemove(w); save(); closeSheet(); render(); } });
             break;
         }
         case 'save-as-routine': {
@@ -678,7 +695,10 @@ document.addEventListener('change', e => {
     const el = e.target, b = el.dataset.bind;
     if (b === 'bodyPart' || b === 'equipment') { ui[b] = el.value; ui.limit = 60; render(); }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.sheet) closeSheet(); });
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!$('#dialog').hidden) $('#dialogNo').click(); else if (ui.sheet) closeSheet();
+});
 
 // ---------- Boot ----------
 if (!EXERCISES.length) {

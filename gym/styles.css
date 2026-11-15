@@ -214,3 +214,10 @@ body.resting .view { padding-bottom: 84px; }
 .hist-ex:last-child { border-bottom: none; }
 .pick-banner { position: sticky; top: 64px; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--secondary); color: #fff; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; }
 .pick-banner .btn { background: rgba(255,255,255,.2); color: #fff; }
+
+/* Confirmation dialog */
+.sheet.dialog { z-index: 70; align-items: center; padding: 16px; }
+.dialog-panel { width: 100%; max-width: 360px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+.dialog-panel p { font-size: 15px; }
+.btn.danger-solid { background: var(--danger); color: #fff; }
+.btn:focus-visible, .nav-item:focus-visible, .chip:focus-visible, .check:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
