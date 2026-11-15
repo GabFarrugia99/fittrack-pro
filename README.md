@@ -15,6 +15,19 @@ A comprehensive fitness tracking application similar to MyFitnessPal, built as a
 7. **Meal Planning** - Plan meals for the week
 8. **Reports & Insights** - Weekly/monthly nutrition analysis
 
+### Food logging
+
+- **Diary:** shows today's logged food by meal, with live calorie and macro totals. Calories burned
+  in FitTrack Gym workouts are added to the day's budget.
+- **Barcode scan:** looks the product up in Open Food Facts.
+- **Nutrition-label scan:** photograph a label and the app reads calories, protein, carbs and fat
+  with [Tesseract.js](https://github.com/naptha/tesseract.js) (Apache-2.0). The photo is read on the
+  device and isn't uploaded. Results open in an editable sheet, because OCR makes mistakes.
+- **Food search:** common foods plus the USDA FoodData Central database. It uses USDA's shared demo
+  key, which is rate-limited; add a free personal key in the search sheet when prompted.
+
+The food code is in `food.js`. The workout tracker, FitTrack Gym, is in [`gym/`](gym/README.md).
+
 ### Technical Stack
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
 - **Storage**: LocalStorage + IndexedDB for offline support

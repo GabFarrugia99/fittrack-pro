@@ -14,6 +14,12 @@ build step or server, and works straight from disk or from any static host such 
   diagram, with a male or female figure.
 - **Workout logger:** log weight and reps (or seconds or metres) per set, see what you lifted last
   time, and run a rest timer after each completed set.
+- **Live activity tracking:** record a run, walk or ride with GPS. Shows a live route map, distance,
+  average and current pace (speed for rides), calories and per-km or per-mile splits. Pausing starts
+  a new route segment, and weak or jumping GPS fixes are ignored.
+- **Heart rate:** connect a Bluetooth heart-rate strap (Chrome or Edge on Android or a computer;
+  iPhone browsers don't support this). Average and maximum are saved with the workout.
+- **Keeps the screen awake** during a workout, where the browser supports it.
 - **Routines:** build a routine once and start it in one tap, or save a finished workout as one.
 - **History:** duration, volume, sets and calories for each workout, plus your best estimated 1RM
   for each exercise.
@@ -38,7 +44,14 @@ Everything is stored in the browser's `localStorage`:
 - `fittrack_exercise_<date>` holds the calorie entries that FitTrack Pro reads. Deleting a workout
   in FitTrack Gym removes its entry.
 
-Calories are estimated as MET 5.0 (general weight training) × body weight × duration.
+Calories are estimates. Strength workouts use MET 5.0 (general weight training) × body weight ×
+duration. Runs use about 1 kcal per kg per km. Walks and rides use a MET value chosen by average speed.
+
+### Tracking limits
+
+Browsers pause GPS when the screen locks or the page is in the background, so the page has to stay
+open with the screen on while recording. The map uses [Leaflet](https://leafletjs.com) (BSD-2-Clause)
+with OpenStreetMap tiles, loaded on demand. Without a connection the route is drawn as a plain trace.
 
 To update the exercise data:
 
