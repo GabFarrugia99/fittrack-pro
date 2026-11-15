@@ -341,6 +341,42 @@
             color: var(--text);
         }
         
+        /* Food logging additions */
+        .barcode-btn.label-btn { margin-top: -0.25rem; background: var(--card); border: 1px solid var(--border); color: var(--text); }
+        .meal-item { gap: 0.75rem; }
+        .meal-item-main { flex: 1; min-width: 0; }
+        .meal-del { background: none; border: none; color: var(--text-muted); font-size: 1.25rem; line-height: 1; padding: 0.25rem 0.5rem; cursor: pointer; border-radius: 8px; }
+        .meal-del:hover { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+        .food-group { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0.75rem 0 0.5rem; }
+        .food-note { color: var(--text-muted); font-size: 0.875rem; padding: 0.75rem 0.25rem; }
+        .usda-key { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+        .usda-key input { flex: 1; min-width: 0; padding: 0.6rem 0.75rem; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+        .usda-key button { padding: 0.6rem 1rem; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
+        .usda-key p { width: 100%; font-size: 0.8rem; color: var(--text-muted); }
+        .usda-key a { color: var(--primary); }
+        .cf-field { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; min-width: 0; }
+        .cf-field input, .cf-field select, .cf-row select { padding: 0.65rem 0.75rem; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; width: 100%; min-width: 0; }
+        .cf-field input:focus, .cf-field select:focus { outline: none; border-color: var(--primary); }
+        .cf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+        .cf-grid.two { grid-template-columns: 1fr 1fr; }
+        @media (max-width: 420px) { .cf-grid { grid-template-columns: 1fr 1fr; } }
+        .cf-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .cf-row select { width: auto; font-size: 0.875rem; padding: 0.4rem 0.6rem; }
+        .cf-caption { font-size: 0.8rem; color: var(--text-muted); }
+        .cf-note { font-size: 0.85rem; color: var(--text); background: rgba(59, 130, 246, 0.14); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem; }
+        .cf-warn { font-size: 0.85rem; color: var(--accent); background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem; }
+        .cf-measures { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+        .cf-chip { padding: 0.35rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.8rem; cursor: pointer; }
+        .cf-total { text-align: center; padding: 0.75rem; border-radius: 12px; background: rgba(16, 185, 129, 0.1); margin-bottom: 0.75rem; }
+        .cf-add { background: var(--primary); color: #fff; border-style: solid; border-color: var(--primary); }
+        .label-progress { text-align: center; }
+        .label-progress img { max-height: 180px; max-width: 100%; border-radius: 12px; margin-bottom: 0.75rem; }
+        .label-bar { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 0.75rem 0; }
+        .label-bar div { height: 100%; width: 0; background: var(--primary); transition: width 0.2s; }
+        .ft-toast { position: fixed; left: 50%; top: 1rem; transform: translate(-50%, -150%); z-index: 2000; background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 0.65rem 1rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-size: 0.9rem; max-width: calc(100% - 2rem); transition: transform 0.25s; }
+        .ft-toast.show { transform: translate(-50%, 0); }
+        [hidden] { display: none !important; }
+
         /* Modal */
         .modal {
             display: none;
@@ -665,18 +701,18 @@
     <!-- Stats -->
     <div class="stats-container">
         <div class="stat-card calories">
-            <div class="label">Calories Remaining</div>
+            <div class="label" id="calLabel">Calories Remaining</div>
             <svg class="progress-ring" viewBox="0 0 120 120">
                 <circle class="bg" cx="60" cy="60" r="52"></circle>
-                <circle class="progress" cx="60" cy="60" r="52" stroke-dasharray="326.73" stroke-dashoffset="80"></circle>
-                <text class="progress-text" x="60" y="65" text-anchor="middle">1,240</text>
+                <circle class="progress" id="calRing" cx="60" cy="60" r="52" stroke-dasharray="326.73" stroke-dashoffset="326.73"></circle>
+                <text class="progress-text" id="calRemaining" x="60" y="65" text-anchor="middle">2,200</text>
             </svg>
-            <div class="sub">of 2,200 goal</div>
+            <div class="sub" id="calGoalSub">of 2,200 goal</div>
         </div>
         
         <div class="stat-card">
             <div class="label">Food</div>
-            <div class="value">960</div>
+            <div class="value" id="foodCalories">0</div>
             <div class="sub">calories</div>
         </div>
         
@@ -691,17 +727,17 @@
     <div class="macros">
         <div class="macro">
             <div class="name">Protein</div>
-            <div class="value">45g</div>
+            <div class="value" id="macroProtein">0g</div>
             <div class="target">of 140g</div>
         </div>
         <div class="macro">
             <div class="name">Carbs</div>
-            <div class="value">89g</div>
+            <div class="value" id="macroCarbs">0g</div>
             <div class="target">of 275g</div>
         </div>
         <div class="macro">
             <div class="name">Fat</div>
-            <div class="value">32g</div>
+            <div class="value" id="macroFat">0g</div>
             <div class="target">of 73g</div>
         </div>
     </div>
@@ -713,6 +749,10 @@
     <button class="barcode-btn" onclick="openBarcodeScanner()">
         <i class="fas fa-barcode"></i> Scan Barcode
     </button>
+    <button class="barcode-btn label-btn" onclick="scanLabel()">
+        <i class="fas fa-camera"></i> Scan Nutrition Label
+    </button>
+    <input type="file" id="labelInput" accept="image/*" capture="environment" hidden>
     
     <div class="quick-actions">
         <div class="quick-action" onclick="openModal('breakfast')">
@@ -733,91 +773,8 @@
         </div>
     </div>
 
-    <!-- Meals -->
-    <div class="meals">
-        <div class="meal-section">
-            <div class="meal-header" onclick="toggleMeal(this)">
-                <h3><i class="fas fa-coffee"></i> Breakfast</h3>
-                <span class="calories">420 cal</span>
-            </div>
-            <div class="meal-items">
-                <div class="meal-item">
-                    <div>
-                        <div class="name">Oatmeal with Berries</div>
-                        <div class="details">1 cup oatmeal, 1/2 cup blueberries</div>
-                    </div>
-                    <span class="cals">320 cal</span>
-                </div>
-                <div class="meal-item">
-                    <div>
-                        <div class="name">Black Coffee</div>
-                        <div class="details">2 cups</div>
-                    </div>
-                    <span class="cals">10 cal</span>
-                </div>
-                <div class="meal-item">
-                    <div>
-                        <div class="name">Scrambled Eggs</div>
-                        <div class="details">2 large eggs</div>
-                    </div>
-                    <span class="cals">90 cal</span>
-                </div>
-                <button class="add-btn" onclick="openModal('breakfast')">
-                    <i class="fas fa-plus"></i> Add Food
-                </button>
-            </div>
-        </div>
-
-        <div class="meal-section">
-            <div class="meal-header" onclick="toggleMeal(this)">
-                <h3><i class="fas fa-utensils"></i> Lunch</h3>
-                <span class="calories">540 cal</span>
-            </div>
-            <div class="meal-items">
-                <div class="meal-item">
-                    <div>
-                        <div class="name">Grilled Chicken Salad</div>
-                        <div class="details">4 oz chicken, mixed greens, olive oil</div>
-                    </div>
-                    <span class="cals">380 cal</span>
-                </div>
-                <div class="meal-item">
-                    <div>
-                        <div class="name">Whole Grain Bread</div>
-                        <div class="details">2 slices</div>
-                    </div>
-                    <span class="cals">160 cal</span>
-                </div>
-                <button class="add-btn" onclick="openModal('lunch')">
-                    <i class="fas fa-plus"></i> Add Food
-                </button>
-            </div>
-        </div>
-
-        <div class="meal-section">
-            <div class="meal-header" onclick="toggleMeal(this)">
-                <h3><i class="fas fa-moon"></i> Dinner</h3>
-                <span class="calories">0 cal</span>
-            </div>
-            <div class="meal-items">
-                <button class="add-btn" onclick="openModal('dinner')">
-                    <i class="fas fa-plus"></i> Add Food
-                </button>
-            </div>
-        </div>
-
-        <div class="meal-section">
-            <div class="meal-header" onclick="toggleMeal(this)">
-                <h3><i class="fas fa-cookie-bite"></i> Snacks</h3>
-                <span class="calories">0 cal</span>
-            </div>
-            <div class="meal-items">
-                <button class="add-btn" onclick="openModal('snack')">
-                    <i class="fas fa-plus"></i> Add Food
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Meals (rendered from today's log by food.js) -->
+    <div class="meals" id="meals"></div>
 
     <!-- Water Tracker -->
     <div class="water-section">
@@ -902,75 +859,70 @@
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             
-            <input type="text" class="search-box" placeholder="Search for food..." id="foodSearch">
+            <input type="text" class="search-box" placeholder="Search foods (USDA database)..." id="foodSearch">
             
-            <div class="food-list" id="foodList">
-                <div class="food-item" onclick="addFood('Grilled Chicken Breast', 165, '4 oz')">
-                    <div class="info">
-                        <h4>Grilled Chicken Breast</h4>
-                        <p>4 oz • 31g protein</p>
-                    </div>
-                    <span class="cals">165 cal</span>
-                </div>
-                
-                <div class="food-item" onclick="addFood('Brown Rice', 216, '1 cup cooked')">
-                    <div class="info">
-                        <h4>Brown Rice</h4>
-                        <p>1 cup cooked • 45g carbs</p>
-                    </div>
-                    <span class="cals">216 cal</span>
-                </div>
-                
-                <div class="food-item" onclick="addFood('Broccoli', 55, '1 cup')">
-                    <div class="info">
-                        <h4>Broccoli</h4>
-                        <p>1 cup • 4g fiber</p>
-                    </div>
-                    <span class="cals">55 cal</span>
-                </div>
-                
-                <div class="food-item" onclick="addFood('Salmon', 412, '6 oz')">
-                    <div class="info">
-                        <h4>Salmon</h4>
-                        <p>6 oz • 34g protein</p>
-                    </div>
-                    <span class="cals">412 cal</span>
-                </div>
-                
-                <div class="food-item" onclick="addFood('Greek Yogurt', 100, '1 cup')">
-                    <div class="info">
-                        <h4>Greek Yogurt (Non-fat)</h4>
-                        <p>1 cup • 17g protein</p>
-                    </div>
-                    <span class="cals">100 cal</span>
-                </div>
-                
-                <div class="food-item" onclick="addFood('Banana', 105, '1 medium')">
-                    <div class="info">
-                        <h4>Banana</h4>
-                        <p>1 medium • 27g carbs</p>
-                    </div>
-                    <span class="cals">105 cal</span>
-                </div>
-                
-                <div class="food-item" onclick="addFood('Almonds', 164, '1 oz')">
-                    <div class="info">
-                        <h4>Almonds</h4>
-                        <p>1 oz (23 nuts) • 14g fat</p>
-                    </div>
-                    <span class="cals">164 cal</span>
-                </div>
-                
-                <div class="food-item" onclick="addFood('Avocado', 240, '1 medium')">
-                    <div class="info">
-                        <h4>Avocado</h4>
-                        <p>1 medium • 22g fat</p>
-                    </div>
-                    <span class="cals">240 cal</span>
-                </div>
+            <div class="food-list" id="foodList"></div>
+
+            <div class="usda-key" id="usdaKeyRow" hidden>
+                <input type="text" id="usdaKeyInput" placeholder="Your USDA API key" autocomplete="off">
+                <button onclick="saveUsdaKey()">Save</button>
+                <p>Free key: <a href="https://fdc.nal.usda.gov/api-key-signup" target="_blank" rel="noopener">fdc.nal.usda.gov/api-key-signup</a></p>
             </div>
+            <button class="add-btn" onclick="scanLabel()"><i class="fas fa-camera"></i> Scan a nutrition label instead</button>
         </div>
     </div>
+
+    <!-- Confirm food: check values, choose portion -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Food</h2>
+                <button class="close-btn" onclick="closeConfirm()">&times;</button>
+            </div>
+            <p class="cf-note" id="cfNote" hidden></p>
+            <label class="cf-field">Name<input type="text" id="cfName" placeholder="e.g. Granola bar"></label>
+            <div class="cf-row">
+                <span class="cf-caption" id="cfBasisLabel">Nutrition per serving</span>
+                <select id="cfPer" aria-label="Values are per">
+                    <option value="serving">per serving</option>
+                    <option value="100g">per 100 g</option>
+                </select>
+            </div>
+            <div class="cf-grid">
+                <label class="cf-field">Calories<input type="number" inputmode="decimal" min="0" id="cfCalories"></label>
+                <label class="cf-field">Protein (g)<input type="number" inputmode="decimal" min="0" id="cfProtein"></label>
+                <label class="cf-field">Carbs (g)<input type="number" inputmode="decimal" min="0" id="cfCarbs"></label>
+                <label class="cf-field">Fat (g)<input type="number" inputmode="decimal" min="0" id="cfFat"></label>
+            </div>
+            <p class="cf-warn" id="cfWarn" hidden></p>
+            <div class="cf-grid two">
+                <label class="cf-field"><span id="cfAmountLabel">Servings eaten</span><input type="number" inputmode="decimal" min="0" step="any" id="cfAmount"></label>
+                <label class="cf-field">Meal
+                    <select id="cfMeal">
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                        <option value="snack">Snack</option>
+                    </select>
+                </label>
+            </div>
+            <div class="cf-measures" id="cfMeasures" hidden></div>
+            <div class="cf-total" id="cfTotal"></div>
+            <button class="add-btn cf-add" onclick="confirmAdd()"><i class="fas fa-plus"></i> Add to Diary</button>
+        </div>
+    </div>
+
+    <!-- Label scan progress -->
+    <div class="modal" id="labelModal">
+        <div class="modal-content label-progress">
+            <img id="labelPreview" alt="Your photo of the label" hidden>
+            <p id="labelStatus">Preparing photo…</p>
+            <div class="label-bar"><div id="labelBar"></div></div>
+            <p class="cf-caption">The photo is read on your device and isn't uploaded.</p>
+        </div>
+    </div>
+
+    <div class="ft-toast" id="ftToast" role="status"></div>
 
     <script>
         // Set current date
@@ -991,11 +943,6 @@
             document.getElementById('addFoodModal').classList.remove('active');
         }
         
-        function addFood(name, calories, serving) {
-            alert(`Added ${name} (${calories} cal) to ${currentMeal}`);
-            closeModal();
-        }
-        
         // Toggle meal section
         function toggleMeal(header) {
             const items = header.nextElementSibling;
@@ -1012,17 +959,6 @@
             const filled = document.querySelectorAll('.water-glass.filled').length;
             document.querySelector('.water-section p').textContent = `${filled} of 8 glasses (${filled * 8} oz)`;
         }
-        
-        // Search functionality
-        document.getElementById('foodSearch').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const items = document.querySelectorAll('.food-item');
-            
-            items.forEach(item => {
-                const name = item.querySelector('h4').textContent.toLowerCase();
-                item.style.display = name.includes(searchTerm) ? 'flex' : 'none';
-            });
-        });
         
         // Close modal on outside click
         document.getElementById('addFoodModal').addEventListener('click', function(e) {
@@ -1423,5 +1359,6 @@
             if (e.target === this) closeBarcodeModal();
         });
     </script>
+    <script src="food.js"></script>
 </body>
 </html>
