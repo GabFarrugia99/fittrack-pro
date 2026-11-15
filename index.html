@@ -325,7 +325,7 @@
             color: var(--text-muted);
             text-decoration: none;
             font-size: 0.75rem;
-            padding: 0.25rem 1rem;
+            padding: 0.25rem 0.5rem;
             transition: color 0.2s;
         }
         
@@ -682,7 +682,7 @@
         
         <div class="stat-card">
             <div class="label">Exercise</div>
-            <div class="value">0</div>
+            <div class="value" id="exerciseCalories">0</div>
             <div class="sub">calories</div>
         </div>
     </div>
@@ -842,6 +842,10 @@
         <a href="#" class="nav-item active">
             <i class="fas fa-home"></i>
             <span>Diary</span>
+        </a>
+        <a href="gym/index.html" class="nav-item">
+            <i class="fas fa-dumbbell"></i>
+            <span>Workouts</span>
         </a>
         <a href="#" class="nav-item">
             <i class="fas fa-chart-line"></i>
@@ -1048,8 +1052,19 @@
             }
         }
         
+        // Exercise calories logged by FitTrack Gym (gym/) for today
+        function loadExerciseCalories() {
+            try {
+                const entries = JSON.parse(localStorage.getItem(`fittrack_exercise_${new Date().toDateString()}`) || '[]');
+                const total = entries.reduce((sum, e) => sum + (e.calories || 0), 0);
+                document.getElementById('exerciseCalories').textContent = total.toLocaleString();
+            } catch (e) { /* storage unavailable */ }
+        }
+
         // Load saved data on startup
         loadData();
+        loadExerciseCalories();
+        window.addEventListener('pageshow', loadExerciseCalories);
         
         // Save data periodically
         setInterval(saveData, 30000);

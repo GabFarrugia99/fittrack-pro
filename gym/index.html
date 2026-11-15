@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>FitTrack Gym</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <a class="header-btn" href="../index.html" title="Back to FitTrack Pro"><i class="fas fa-arrow-left"></i></a>
+        <h1 id="title">Workout</h1>
+        <button class="header-btn" data-action="settings" title="Settings" aria-label="Settings"><i class="fas fa-gear"></i></button>
+    </header>
+
+    <main id="view" class="view"></main>
+
+    <div id="restBar" class="rest-bar" hidden>
+        <div class="rest-label">Rest</div>
+        <div class="rest-time" id="restTime">1:30</div>
+        <button data-action="rest-adjust" data-delta="-15">−15</button>
+        <button data-action="rest-adjust" data-delta="15">+15</button>
+        <button data-action="rest-skip" class="ghost">Skip</button>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="../index.html" class="nav-item"><i class="fas fa-utensils"></i><span>Diary</span></a>
+        <button class="nav-item" data-tab="workout"><i class="fas fa-dumbbell"></i><span>Workout</span></button>
+        <button class="nav-item" data-tab="library"><i class="fas fa-book-open"></i><span>Exercises</span></button>
+        <button class="nav-item" data-tab="routines"><i class="fas fa-list-check"></i><span>Routines</span></button>
+        <button class="nav-item" data-tab="history"><i class="fas fa-clock-rotate-left"></i><span>History</span></button>
+    </nav>
+
+    <div id="sheet" class="sheet" hidden>
+        <div class="sheet-panel" role="dialog" aria-modal="true">
+            <div class="sheet-head">
+                <h2 id="sheetTitle"></h2>
+                <button class="header-btn" data-action="close-sheet" aria-label="Close"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div id="sheetBody" class="sheet-body"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="data/exercises.js"></script>
+    <script src="data/body-paths.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
